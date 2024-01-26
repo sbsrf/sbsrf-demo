@@ -1,0 +1,61 @@
+__include: sbfm.schema.yaml:/
+schema:
+  __include: sbfm.schema.yaml:/schema
+  schema_id: sbfx
+  name: 声笔飞讯
+switches:
+  __include: sbfm.schema.yaml:/switches
+  __append:
+    - name: fast_pop
+      reset: 0
+      states:
+        - 慢顶
+        - 快顶
+speller:
+  __include: sbfm.schema.yaml:/speller
+  max_code_length: 7
+  popping:
+    - match: '[bpmfdtnlgkhjqxzcsrywv][a-z][aeiou]+'
+      accept: '[bpmfdtnlgkhjqxzcsrywv]'
+    - match: '[bpmfdtnlgkhjqxzcsrywv][a-z][bpmfdtnlgkhjqxzcsrywv]'
+      accept: '[bpmfdtnlgkhjqxzcsrywv]'
+      prefix: 2
+    - when: fast_pop
+      match: '[bpmfdtnlgkhjqxzcsrywv][a-z][bpmfdtnlgkhjqxzcsrywv]'
+      accept: '[aeiou]'
+      prefix: 2
+    - match: '[bpmfdtnlgkhjqxzcsrywv][a-z][bpmfdtnlgkhjqxzcsrywv][aeiou]'
+      accept: '[bpmfdtnlgkhjqxzcsrywv]'
+      prefix: 2
+    - when: pro_char
+      match: '[bpmfdtnlgkhjqxzcsrywv][a-z]'
+      accept: '[bpmfdtnlgkhjqxzcsrywv]'
+    - match: '[bpmfdtnlgkhjqxzcsrywv][a-z][bpmfdtnlgkhjqxzcsrywv][aeiou]{2,4}'
+      accept: '[bpmfdtnlgkhjqxzcsrywv]'
+    - match: '[bpmfdtnlgkhjqxzcsrywv][a-z][bpmfdtnlgkhjqxzcsrywv][23789][aeiou]{0,3}'
+      accept: '[bpmfdtnlgkhjqxzcsrywv]'
+    - match: '[bpmfdtnlgkhjqxzcsrywv][a-z]?[0-9]'
+      accept: .
+    - match: .{4,}
+      accept: '[0123456789]'
+    - when_not: is_enhanced
+      match: '[bpmfdtnlgkhjqxzcsrywv][a-z]?'
+      accept: '[0123456789]'
+    - when_not: fast_pop
+      match: '[bpmfdtnlgkhjqxzcsrywv][a-z][bpmfdtnlgkhjqxzcsrywv]'
+      accept: '[0123456789]'
+translator:
+  __include: sbfm.schema.yaml:/translator
+  dictionary: sbfx
+  disable_user_dict_for_patterns:
+    - '[bpmfdtnlgkhjqxzcsrywv][a-z]?[0123456789aeuio_]*'
+recognizer:
+  patterns:
+    __include: sbfm.schema.yaml:/recognizer/patterns
+    retention: ^[qwrtsdfgzxcvbyphjklnm][aeuio]{1,2}|o[qwrtsdfgzxcvbyphjklnm0-9][a-z0-9]*$
+menu:
+  __include: sbfm.schema.yaml:/menu
+  alternative_select_patterns:
+    - '[bpmfdtnlgkhjqxzcsrywv][a-z][aeuio]{2}'
+    - '[bpmfdtnlgkhjqxzcsrywv]{4}[aeuio]{2}'
+    - '[bpmfdtnlgkhjqxzcsrywv][a-z][bpmfdtnlgkhjqxzcsrywv][aeuio]{4}'

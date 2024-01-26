@@ -1,0 +1,29 @@
+# Rime dict
+# encoding: utf-8
+#
+# 声笔简码
+
+---
+name: sbjm
+version: "9.5"
+sort: by_weight
+use_preset_vocabulary: false
+columns:
+  - text
+  - code
+  - weight
+import_tables:
+  - jmzdy
+  - sbjm.extended
+encoder:
+  exclude_patterns:
+    - '^[aeiou].*$'
+    - '^[bpmfdtnlgkhjqxzcsrywv][a-z]?[0-9]?'
+  rules:
+    - length_equal: 2
+      formula: "AaBaBbBcAbAc"
+    - length_equal: 3
+      formula: "AaBaCaCbAbAc"
+    - length_in_range: [4, 12]
+      formula: "AaBaCaZaAbAcZb"
+...

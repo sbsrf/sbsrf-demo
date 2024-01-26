@@ -1,0 +1,48 @@
+__include: sbfm.schema.yaml:/
+schema:
+  __include: sbfm.schema.yaml:/schema
+  schema_id: sbxh
+  name: 声笔小鹤
+switches:
+  - name: ascii_mode
+    reset: 0
+    states:
+      - 中文
+      - 西文
+  - name: ascii_punct
+    states:
+      - 。，
+      - ．，
+  - name: zh_trad
+    reset: 0
+    states:
+      - 简体
+      - 繁体
+  - name: pro_char
+    reset: 0
+    states:
+      - 词组
+      - 单字
+  - name: label_to_comment
+    reset: 0
+    states:
+      - 不转
+      - 转换
+speller:
+  __include: sbfm.schema.yaml:/speller
+  algebra:
+    - derive/_//
+translator:
+  __include: sbfm.schema.yaml:/translator
+  dictionary: sbxh
+  disable_user_dict_for_patterns:
+    - '[bpmfdtnlgkhjqxzcsrywv][a-z]?[aeuio_]?'
+recognizer:
+  patterns:
+    __include: sbfm.schema.yaml:/recognizer/patterns
+    sbjm_lookup: ''
+menu:
+  __include: sbfm.schema.yaml:/menu
+  alternative_select_patterns:
+    - '[bpmfdtnlgkhjqxzcsrywv][a-z][aeuio]{4}'
+    - ([bpmfdtnlgkhjqxzcsrywv][a-z]){2}[aeuio]{2}
