@@ -1,3 +1,4 @@
+__include: sbxlm.yaml:/prelude
 schema:
   schema_id: sbfm
   name: 声笔飞码
@@ -5,8 +6,6 @@ schema:
   author:
     - 戴石麟 <https://sbxlm.gitee.io>
     - 蓝落萧 <https://tansongchen.com>
-  dependencies:
-    - sbzdy
 switches:
   - name: ascii_mode
     reset: 0
@@ -32,21 +31,26 @@ switches:
     states:
       - 常规
       - 增强
-  - name: label_to_comment
+  - name: auto_inline
     reset: 0
     states:
-      - 不转
-      - 转换
+      - 关闭
+      - 开启
+  - name: is_buffered
+    reset: 0
+    states:
+      - 直通
+      - 缓冲
 engine:
   processors:
+    - lua_processor@*sbxlm.ascii_composer
     - ascii_composer
-    - recognizer
-    - lua_processor@*sbxlm.fix_top
     - lua_processor@*sbxlm.key_binder
     - key_binder
     - lua_processor@*sbxlm.upper_case
     - lua_processor@*sbxlm.popping
     - lua_processor@*sbxlm.selector
+    - recognizer
     - speller
     - punctuator
     - selector
@@ -67,206 +71,57 @@ engine:
     - punct_translator
     - table_translator@sbzdy
     - lua_translator@*sbxlm.auto_length
-    - history_translator@hist
     - lua_translator@*utils.datetime
     - lua_translator@*utils.number
     - lua_translator@*utils.calculator
+    - history_translator
   filters:
     - lua_filter@*sbxlm.hint
-    - lua_filter@*sbxlm.label_to_comment
     - lua_filter@*sbxlm.radicals
     - simplifier
     - uniquifier
+    - lua_filter@*sbxlm.select_key_to_comment
 speller:
-  alphabet: qwertasdfgzxcvbyuiophjklnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890+_;'
-  initials: qwrtsdfgzxcvbyphjklnm+
+  alphabet: bpmfdtnlgkhjqxzcsrywvaeiou0123456789;'
+  initials: bpmfdtnlgkhjqxzcsrywv
   auto_clear: max_length
   max_code_length: 6
   popping:
-    - match: '[bpmfdtnlgkhjqxzcsrywv][a-z][aeiou]+'
-      accept: '[bpmfdtnlgkhjqxzcsrywv]'
-    - when: pro_char
-      match: '[bpmfdtnlgkhjqxzcsrywv][a-z]'
-      accept: '[bpmfdtnlgkhjqxzcsrywv]'
-    - match: '[bpmfdtnlgkhjqxzcsrywv][a-z][bpmfdtnlgkhjqxzcsrywv][a-z][aeiou]*'
-      accept: '[bpmfdtnlgkhjqxzcsrywv]'
-    - match: '[bpmfdtnlgkhjqxzcsrywv].*[0-9]'
-      accept: .
-    - when: is_enhanced
-      match: '[bpmfdtnlgkhjqxzcsrywv][a-z]{2}.*'
-      accept: '[0123456789]'
-    - when_not: is_enhanced
-      match: .*
-      accept: '[0123456789]'
+    __include: sbxlm.yaml:/popping
+    __append:
+      - match: '[bpmfdtnlgkhjqxzcsrywv][a-z][bpmfdtnlgkhjqxzcsrywv][a-z][aeiou]*'
+        accept: '[bpmfdtnlgkhjqxzcsrywv]'
+      - match: ([bpmfdtnlgkhjqxzcsrywv][a-z]){2}
+        accept: '[bpmfdtnlgkhjqxzcsrywv]'
+        prefix: 2
+        conditional: true
 translator:
   dictionary: sbfm
-  enable_user_dict: true
   enable_encoder: true
-  enable_sentence: false
-  strict_spelling: true
-  enable_completion: false
-  encode_commit_history: true
-  enable_filtering: false
-  lower_case: true
   stop_change: false
   delete_threshold: 1000
   max_phrase_length: 4
   disable_user_dict_for_patterns:
-    - '[bpmfdtnlgkhjqxzcsrywv][a-z]?[0123456789aeuio_]*'
-simplifier:
-  opencc_config: s2t.json
-  option_name: zh_trad
-sbzdy:
-  tag: sbzdy
-  dictionary: sbzdy
-  enable_user_dict: false
-  enable_encoder: false
-  enable_sentence: false
-  strict_spelling: true
-  enable_completion: true
-  encode_commit_history: false
-  tips: 〔自定义〕
-hist:
-  input: +
-  size: 6
-  initial_quality: -1
-sbjm_lookup:
-  tag: sbjm_lookup
-  dictionary: sbjm
-  enable_user_dict: false
-  enable_encoder: false
-  enable_sentence: false
-  strict_spelling: true
-  enable_completion: true
-  encode_commit_history: false
-  tips: 〔声笔反查〕
-sbjm_reverse_lookup:
-  tags:
-    - sbjm_lookup
-  overwrite_comment: true
-  dictionary: sbfm
-bihua_lookup:
-  tag: bihua_lookup
-  dictionary: bihua
-  enable_user_dict: false
-  enable_encoder: false
-  enable_sentence: false
-  strict_spelling: true
-  enable_completion: true
-  encode_commit_history: false
-  tips: 〔笔画反查〕
-bihua_reverse_lookup:
-  tags:
-    - bihua_lookup
-  overwrite_comment: true
-  dictionary: sbfm
-  comment_format:
-    - xform/[^ ]+\d //
-    - xform/[^ ]{1,5} //
-pinyin_lookup:
-  tag: pinyin_lookup
-  dictionary: hypy
-  enable_user_dict: false
-  enable_encoder: false
-  enable_sentence: false
-  strict_spelling: true
-  enable_completion: true
-  encode_commit_history: false
-  prefix: a
-  tips: 〔拼音反查〕
-  comment_format:
-    - xform/[^ ]+\d //
-    - xform/[^ ]{1,5} //
-pinyin_reverse_lookup:
-  tags:
-    - pinyin_lookup
-  overwrite_comment: true
-  dictionary: sbfm
-  comment_format:
-    - xform/[^ ]+\d //
-    - xform/[^ ]{1,5} //
-zhlf_lookup:
-  tag: zhlf_lookup
-  dictionary: zhlf
-  enable_user_dict: false
-  enable_encoder: false
-  enable_sentence: false
-  strict_spelling: true
-  enable_completion: true
-  encode_commit_history: false
-  tips: 〔两分反查〕
-zhlf_reverse_lookup:
-  tags:
-    - zhlf_lookup
-  overwrite_comment: true
-  dictionary: sbfm
-  comment_format:
-    - xform/[^ ]+\d //
-    - xform/[^ ]{1,5} //
+    - '[bpmfdtnlgkhjqxzcsrywv][a-z]?[0-9aeuio;'']*'
 punctuator:
-  import_preset: sbxlm.symbols
+  import_preset: sbxlm
 recognizer:
+  import_preset: sbxlm
   patterns:
-    sbzdy: ^u[qwrtsdfgzxcvbyphjklnm][a-z0-9]*$
-    sbjm_lookup: ^[bpmfdtnlgkhjqxzcsrywv][aeiou]{3,}$
     retention: >-
-      ^[qwrtsdfgzxcvbyphjklnm][a-z][qwrtsdfgzxcvbyphjklnm][a-z]|[qwrtsdfgzxcvbyphjklnm]{2}[aeuio]|[qwrtsdfgzxcvbyphjklnm][aeuio]{2}|o[qwrtsdfgzxcvbyphjklnm0-9][a-z0-9]*$
-    bihua_lookup: ^[aeiou]+$
-    pinyin_lookup: ^a([qwrtsdfgzxcvbyphjklnm][a-z]*'?)$
-    zhlf_lookup: ^i[qwrtsdfgzxcvbyphjklnm][a-z]*'?$
-    punct: ^\\([0-9]|10|[A-Za-z]+)$
-    quick_menu: ^o[qwrtsdfgzxcvbyphjklnm0-9][a-z0-9]*$
-    expression: ^e.*$
+      ^([qwrtsdfgzxcvbyphjklnm][a-z][qwrtsdfgzxcvbyphjklnm][a-z]|[qwrtsdfgzxcvbyphjklnm]{2}[aeuio]|[qwrtsdfgzxcvbyphjklnm][aeuio]{2})$
 key_binder:
-  bindings:
-    - when: paging
-      accept: Shift+Tab
-      send: Page_Up
-    - when: has_menu
-      accept: Tab
-      send: Page_Down
-    - match: '[bpmfdtnlgkhjqxzcsrywv]{2}'
-      accept: Tab
-      send_sequence: '{underscore}{space}'
-    - match: '[bpmfdtnlgkhjqxzcsrywv]{2}'
-      accept: ''''
-      send_sequence: '{underscore}{space}'
-    - match: '[bpmfdtnlgkhjqxzcsrywv]{2}'
-      accept: ;
-      send_sequence: '{Home}{Right}{space}{space}'
-    - match: '[bpmfdtnlgkhjqxzcsrywv][bpmfdtnlgkhjqxzcsrywv][a-z0-9]'
-      accept: ;
-      send_sequence: '{Home}{Right}{space}{space}'
-    - match: '[bpmfdtnlgkhjqxzcsrywv]{3}'
-      accept: Tab
-      send_sequence: '{Home}{Right}{Right}{underscore}{space}{space}'
-    - match: '[bpmfdtnlgkhjqxzcsrywv]{3}'
-      accept: ''''
-      send_sequence: '{Home}{Right}{space}{underscore}{space}'
-    - match: '[bpmfdtnlgkhjqxzcsrywv]{3}'
-      accept: Shift+space
-      send_sequence: '{Home}{Right}{space}{Home}{Right}{space}{space}'
-    - match: ([bpmfdtnlgkhjqxzcsrywv][a-z0-9]){2}
-      accept: ;
-      send_sequence: '{Home}{Right}{Right}{space}{space}'
-    - match: '[bpmfdtnlgkhjqxzcsrywv][a-z0-9][bpmfdtnlgkhjqxzcsrywv]{2}'
-      accept: ''''
-      send_sequence: '{Home}{Right}{Right}{space}{underscore}{space}'
-    - match: '[bpmfdtnlgkhjqxzcsrywv][a-z0-9][bpmfdtnlgkhjqxzcsrywv]{2}'
-      accept: Shift+space
-      send_sequence: '{Home}{Right}{Right}{space}{Home}{Right}{space}{space}'
-    - match: ([bpmfdtnlgkhjqxzcsrywv][a-z0-9]){2}[a-z0-9]
-      accept: ;
-      send_sequence: '{Home}{Right}{Right}{space}{space}'
+  import_preset: sbxlm
+bihua_reverse_lookup:
+  __include: sbxlm.yaml:/prelude/bihua_reverse_lookup
+  dictionary: sbfm
+pinyin_reverse_lookup:
+  __include: sbxlm.yaml:/prelude/pinyin_reverse_lookup
+  dictionary: sbfm
+zhlf_reverse_lookup:
+  __include: sbxlm.yaml:/prelude/zhlf_reverse_lookup
+  dictionary: sbfm
 menu:
-  page_size: 6
-  alternative_select_keys: _aeuio
-  alternative_select_labels:
-    - ''
-    - a
-    - e
-    - u
-    - i
-    - o
+  __include: sbxlm.yaml:/prelude/menu
   alternative_select_patterns:
     - ([bpmfdtnlgkhjqxzcsrywv][a-z]){1,2}[aeuio]{2}

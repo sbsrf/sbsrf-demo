@@ -1,8 +1,11 @@
-__include: sbfm.schema.yaml:/
+__include: sbxlm.yaml:/prelude
 schema:
-  __include: sbfm.schema.yaml:/schema
   schema_id: sbzr
   name: 声笔自然
+  version: '10.0'
+  author:
+    - 戴石麟 <https://sbxlm.gitee.io>
+    - 蓝落萧 <https://tansongchen.com>
 switches:
   - name: ascii_mode
     reset: 0
@@ -23,26 +26,90 @@ switches:
     states:
       - 词组
       - 单字
-  - name: label_to_comment
+  - name: auto_inline
     reset: 0
     states:
-      - 不转
-      - 转换
+      - 关闭
+      - 开启
+  - name: is_buffered
+    reset: 0
+    states:
+      - 直通
+      - 缓冲
+engine:
+  processors:
+    - lua_processor@*sbxlm.ascii_composer
+    - ascii_composer
+    - lua_processor@*sbxlm.key_binder
+    - key_binder
+    - lua_processor@*sbxlm.upper_case
+    - lua_processor@*sbxlm.popping
+    - lua_processor@*sbxlm.selector
+    - recognizer
+    - speller
+    - punctuator
+    - selector
+    - navigator
+    - express_editor
+  segmentors:
+    - ascii_segmentor
+    - matcher
+    - abc_segmentor
+    - affix_segmentor@sbzdy
+    - affix_segmentor@zhlf_lookup
+    - affix_segmentor@bihua_lookup
+    - affix_segmentor@pinyin_lookup
+    - punct_segmentor
+    - fallback_segmentor
+  translators:
+    - punct_translator
+    - table_translator@sbzdy
+    - lua_translator@*sbxlm.auto_length
+    - history_translator@hist
+    - lua_translator@*utils.datetime
+    - lua_translator@*utils.number
+    - lua_translator@*utils.calculator
+  filters:
+    - lua_filter@*sbxlm.hint
+    - simplifier
+    - uniquifier
+    - lua_filter@*sbxlm.select_key_to_comment
 speller:
-  __include: sbfm.schema.yaml:/speller
+  alphabet: bpmfdtnlgkhjqxzcsrywvaeiou;'
+  initials: bpmfdtnlgkhjqxzcsrywv
+  auto_clear: max_length
+  max_code_length: 6
   algebra:
-    - derive/_//
+    - derive/'//
+  popping:
+    __include: sbxlm.yaml:/popping
+    __append:
+      - match: '[bpmfdtnlgkhjqxzcsrywv][a-z][bpmfdtnlgkhjqxzcsrywv][a-z][aeiou]*'
+        accept: '[bpmfdtnlgkhjqxzcsrywv]'
 translator:
-  __include: sbfm.schema.yaml:/translator
   dictionary: sbzr
+  stop_change: false
+  delete_threshold: 1000
+  max_phrase_length: 4
   disable_user_dict_for_patterns:
-    - '[bpmfdtnlgkhjqxzcsrywv][a-z]?[aeuio_]?'
+    - '[bpmfdtnlgkhjqxzcsrywv][a-z]?[aeuio;'']?'
+punctuator:
+  import_preset: sbxlm
 recognizer:
-  patterns:
-    __include: sbfm.schema.yaml:/recognizer/patterns
-    sbjm_lookup: ''
+  import_preset: sbxlm
+key_binder:
+  import_preset: sbxlm
 menu:
-  __include: sbfm.schema.yaml:/menu
+  __include: sbxlm.yaml:/prelude/menu
   alternative_select_patterns:
     - '[bpmfdtnlgkhjqxzcsrywv][a-z][aeuio]{4}'
     - ([bpmfdtnlgkhjqxzcsrywv][a-z]){2}[aeuio]{2}
+bihua_reverse_lookup:
+  __include: sbxlm.yaml:/prelude/bihua_reverse_lookup
+  dictionary: sbzr
+pinyin_reverse_lookup:
+  __include: sbxlm.yaml:/prelude/pinyin_reverse_lookup
+  dictionary: sbzr
+zhlf_reverse_lookup:
+  __include: sbxlm.yaml:/prelude/zhlf_reverse_lookup
+  dictionary: sbzr

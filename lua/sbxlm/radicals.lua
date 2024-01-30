@@ -1,7 +1,7 @@
--- Name: radicals.lua
--- 名称: 飞系部首反查
--- Version: 20240123
--- Author: 蓝落萧
+-- 飞系部首反查过滤器
+-- 适用于：声笔飞码、声笔飞单、声笔飞讯
+-- 本过滤器在编码段打上反查标签的时候，给单字候选加注部首信息，以便用户学习
+-- 部首信息的数据存放在同一目录下的 radicals.txt
 
 local rime = require "rime"
 
@@ -24,25 +24,25 @@ function this.init(env)
   file:close()
 end
 
+---@param segment Segment
+---@param env Env
+function this.tags_match(segment, env)
+  for _, value in ipairs(this.lookup_tags) do
+    if segment.tags[value] then
+      return true
+    end
+  end
+  return false
+end
+
 ---@param translation Translation
 ---@param env Env
 function this.func(translation, env)
-  local segment = env.engine.context.composition:back()
-  for _, tag in ipairs(this.lookup_tags) do
-    if segment:has_tag(tag) then
-      goto lookup
-    end
-  end
-  goto default
-  ::lookup::
   for candidate in translation:iter() do
-    candidate.comment = candidate.comment .. " 【" .. (this.radicals[candidate.text] or "") .. "】"
+    candidate.comment = candidate.comment .. string.format("【%s】", this.radicals[candidate.text] or "")
     rime.yield(candidate)
   end
-  ::default::
-  for candidate in translation:iter() do
-    rime.yield(candidate)
-  end
+  return
 end
 
 return this

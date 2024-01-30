@@ -1,7 +1,8 @@
 # Rime dict
 # encoding: utf-8
 #
-# 声笔小鹤扩展
+# 声笔小鹤动态词库
+# 本文件中的内容用于自动码长调整，请不要改动！
 
 ---
 name: sbxh.extended

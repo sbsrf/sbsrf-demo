@@ -1,11 +1,21 @@
+-- 声笔系列码核心逻辑
+-- 存放了一些常用的函数，方便调用
+
 local rime = require "rime"
 local match = rime.match
 local core = {}
 
+-- 大键盘的所有按键
 local s = "[bpmfdtnlgkhjqxzcsrywv]";
-local p = "[bpmfdtnlgkhjqxzcsrywv]";
+-- 小键盘的所有按键
 local b = "[aeiou]";
+-- 所有按键
 local x = "[a-z]";
+
+----------------------------------------
+-- 以下为一系列常用的正则匹配函数
+-- 用于判断输入是否符合某种格式
+-- 例如：core.s(input) 判断输入是否为一个声母
 
 ---@param input string
 function core.s(input)
@@ -28,11 +38,6 @@ function core.sxb(input)
 end
 
 ---@param input string
-function core.spbb(input)
-  return match(input, s .. p .. b .. b)
-end
-
----@param input string
 function core.sss(input)
   return match(input, s .. s .. s)
 end
@@ -52,10 +57,10 @@ function core.sxsb(input)
   return match(input, s .. x .. s .. b)
 end
 
----@param input string
-function core.ssss(input)
-  return match(input, s .. s .. s .. s)
-end
+----------------------------------------
+-- 以下为一系列常用的方案判断函数
+-- 用于判断当前方案是否为某种方案
+-- 例如：core.feixi(id) 判断当前方案是否为飞系方案
 
 ---@param id string
 function core.feixi(id)
@@ -87,6 +92,8 @@ function core.sp(id)
   return id == "sbzr" or id == "sbxh"
 end
 
+---判断一个 sb 格式的编码在小鹤、自然双拼方案中是否为无效拼音
+---如果是，那么这个编码就是声笔字，需要提示
 ---@param sb string
 function core.invalid_pinyin(sb)
   for _, value in ipairs({ "[bpfw]e", "[gkhfwv]i", "[jqx][aoe]", "ra", "vu" }) do
@@ -97,9 +104,15 @@ function core.invalid_pinyin(sb)
   return false
 end
 
+---执行各方案的实际造词逻辑
+---目前在 lua 中没有找到获取组词规则的方法
+---因为 TableEncoder 在 librime 里是被 TableTranslator 调用的，没有封装出独立的 API
+---所以这里只能用一个大的 if-else 语句来判断，硬编码各个方案的组词规则
+---以后如果有更好的方法，再来重构这个函数
 ---@param code string[]
 ---@param id string
 function core.word_rules(code, id)
+  -- 不考虑扩展编码时，词组的基本编码
   local base = ""
   local jm = core.jm(id)
   local fm = core.fm(id)
@@ -140,10 +153,12 @@ function core.word_rules(code, id)
   elseif fm or fx or sp then
     extended = string.sub(code[1], 3, 4)
   end
+  -- 全部编码为基本编码加上扩展编码
   local full = base .. extended
+  -- 对于简码和飞讯，多字词有两种打法，之前生成的打法没有考虑用 ssss 格式的情况。
+  -- 这里，在编码的最后增加一个末字的声母，然后在检索的时候动态判断
   if (jm or fx) and #code >= 4 then
-    -- 简码和飞讯，增加一个取末字声母的选项
-    full = full .. "'" .. string.sub(code[#code], 1, 1)
+    full = full .. string.sub(code[#code], 1, 1)
   end
   return full
 end

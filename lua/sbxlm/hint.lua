@@ -1,7 +1,6 @@
--- Name: hint.lua
--- 名称: 提示数选字词、声笔字、缩减码
--- Version: 20240123
--- Author: 戴石麟、蓝落萧
+-- 提示过滤器
+-- 适用于：声笔简码、声笔飞码、声笔飞单、声笔飞讯、声笔小鹤、声笔自然
+-- 本过滤器在不同的编码模式和不同的选项下分别提示数选字词、声笔字、缩减码
 
 local rime = require "rime"
 local core = require "sbxlm.core"
@@ -12,8 +11,15 @@ local this = {}
 function this.init(env)
 	this.memory = rime.Memory(env.engine, env.engine.schema)
 	local id = env.engine.schema.schema_id
+	-- 声笔飞单用了声笔飞码的词典，所以反查词典的名称与方案 ID 不相同，需要特殊判断
 	local dict_name = id == "sbfd" and "sbfm" or id
 	this.reverse = rime.ReverseLookup(dict_name)
+end
+
+---@param segment Segment
+---@param env Env
+function this.tags_match(segment, env)
+	return segment:has_tag("abc")
 end
 
 ---@param translation Translation
@@ -21,13 +27,14 @@ end
 function this.func(translation, env)
 	local is_enhanced = env.engine.context:get_option("is_enhanced")
 	local id = env.engine.schema.schema_id
-	local hint_n1 = { '2', '3', '7', '8', '9' }
-	local hint_n2 = { '1', '4', '5', '6', '0' }
+	local hint_n1 = { "2", "3", "7", "8", "9" }
+	local hint_n2 = { "1", "4", "5", "6", "0" }
 	local hint_b = { "a", "e", "u", "i", "o" }
 	local i = 1
 	local memory = this.memory
 	for candidate in translation:iter() do
 		local input = candidate.preedit
+		-- 第一种情况：飞系方案 spbb 格式上的编码需要提示 sbb 或者 sbbb 格式的缩减码
 		if core.feixi(id) and rime.match(input, "[bpmfdtnlgkhjqxzcsrywv]{2}[aeuio]{2,}") then
 			local codes = this.reverse:lookup(candidate.text)
 			for code in string.gmatch(codes, "[^ ]+") do
@@ -36,21 +43,22 @@ function this.func(translation, env)
 				end
 			end
 		end
+		-- 除了缩减码之外，其他的提示都只需要用到首选字词的信息，所以其他字词可以直接通过
 		if i > 1 then
 			rime.yield(candidate)
 			goto continue
 		end
-		-- ss 格式输入，需要提示 ss_ 格式编码
-		if core.ss(input) and core.feixi(id) then
-			memory:dict_lookup(candidate.preedit .. "_", false, 1)
-			for dictentry in memory:iter_dict()
+		-- 第二种情况：飞系方案 ss 格式输入需要提示 ss' 格式的二字词
+		if core.feixi(id) and (core.s(input) or core.ss(input)) then
+			memory:dict_lookup(candidate.preedit .. "'", false, 1)
+			for entry in memory:iter_dict()
 			do
-				candidate:get_genuine().comment = dictentry.text
+				candidate:get_genuine().comment = ' ' .. entry.text
 				break
 			end
 		end
 		rime.yield(candidate)
-		-- 一般的情况，分为 23789, 14560 三组处理
+		-- 第三种情况：飞系方案和声笔简码在 s, sb, ss, sxb 格式的编码上提示 23789 和 14560 两组数选字词
 		if (core.s(input) or core.sb(input) or core.ss(input) or core.sxb(input)) and is_enhanced then
 			for j = 1, #hint_n1 do
 				local n1 = hint_n1[j]
@@ -79,7 +87,7 @@ function this.func(translation, env)
 				::continue::
 			end
 		end
-		-- 在 s 和 sxs 码位上，提示声笔字
+		-- 第四种情况：飞系方案和双拼方案在 s 和 sxs 码位上，提示声笔字
 		-- 对于飞系，所有 sb 都提示
 		-- 对于小鹤和自然，只有几个 sb 格式的编码是真正的声笔字，通过声韵拼合规律判断出来
 		if ((core.s(input) or core.sxs(input)) and (core.feixi(id) or core.sp(id)))

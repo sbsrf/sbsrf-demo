@@ -15,7 +15,7 @@ columns:
   - stem
 import_tables:
   - fmzdy
-  - fmdz
+  - sbfd
   - sbfx.extended
 encoder:
   exclude_patterns:

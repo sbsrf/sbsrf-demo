@@ -150,7 +150,7 @@ local _Context
 
 ---@class CommitHistory
 ---method
----@field iter fun(self: self): CommitRecord[]
+---@field iter fun(self: self): fun(): (number, CommitRecord)|nil
 
 ---@class CommitRecord
 ---element
@@ -209,7 +209,7 @@ local _Composition
 
 ---@class Notifier
 ---method
----@field connect fun(self: self, f: fun(ctx: Context), group: integer|nil): function[]
+---@field connect fun(self: self, f: fun(ctx: Context), group: integer|nil): Connection
 local _Notifier
 
 ---@class OptionUpdateNotifier: Notifier
@@ -226,6 +226,10 @@ local _PropertyUpdateNotifier
 ---method
 ---@field connect fun(self: self, f: fun(ctx: Context, key: string), group:integer|nil): function[]
 local _KeyEventNotifier
+
+---@class Connection
+---method
+---@field disconnect fun(self: self)
 
 ---@class Segment
 ---element
@@ -252,7 +256,7 @@ local _Segment
 ---@field input string
 ---method
 ---@field empty fun(self: self): boolean
----@field back fun(self: self): Segment
+---@field back fun(self: self): Segment | nil
 ---@field pop_back fun(self: self): Segment
 ---@field reset_length fun(self: self, length: integer)
 ---@field add_segment fun(self: self, seg: Segment)
